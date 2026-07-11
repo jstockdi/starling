@@ -1,0 +1,10 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Secrets / local env — never commit
+.env
+.env.*
+!.env.example
+.claude/settings.local.json

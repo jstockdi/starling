@@ -1,0 +1,22 @@
+{
+  "harbor_name": "Bristol Harbor",
+  "timezone": "America/New_York",
+  "notes": "Hyper-local station set for racing out of Bristol Harbor, RI: tight harbor courses out around Hog Island and Poppasquash Point into the East Passage.",
+  "fixes": [
+    { "key": "inner_harbor", "name": "Inner Bristol Harbor",            "lat": 41.660, "lon": -71.280 },
+    { "key": "poppasquash",  "name": "Off Poppasquash Point",           "lat": 41.660, "lon": -71.310 },
+    { "key": "hog_mouth",    "name": "Hog Island Shoal (harbor mouth)", "lat": 41.637, "lon": -71.273 },
+    { "key": "hog_south",    "name": "South of Hog Island",             "lat": 41.615, "lon": -71.300 },
+    { "key": "east_passage", "name": "East Passage / off Hope Island",  "lat": 41.600, "lon": -71.320 }
+  ],
+  "representative_fix": "hog_mouth",
+  "tide_station": { "id": "8452660", "name": "Newport (Narragansett Bay reference)", "note": "Bristol Harbor high water lags Newport by only a few minutes; Newport is the reliable harmonic reference station." },
+  "current_stations": [
+    { "id": "ACT2171", "name": "Hog Island, NW of (harbor mouth)", "role": "mouth",    "flood_dir": 11,  "ebb_dir": 199 },
+    { "id": "ACT2156", "name": "Dyer Island, W of (East Passage)",  "role": "channel",  "flood_dir": null, "ebb_dir": null }
+  ],
+  "wind_obs": [
+    { "id": "8452944", "name": "Conimicut Light", "source": "coops", "note": "Nearest real anemometer, ~3 mi N up the East Passage." }
+  ],
+  "offshore": { "id": "44097", "name": "Block Island (NDBC 44097)", "note": "What's arriving from the south / open-ocean context." }
+}
