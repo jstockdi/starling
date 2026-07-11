@@ -29,6 +29,26 @@ first-order tactical factor.
    This writes `briefs/YYYY-MM-DD_tide.png`, `_wind.png`, `_current.png`.
 4. **Read the JSON** and **write the tactical prose brief** using the local
    knowledge below. Reference the three images so the user can view them.
+5. **Save the brief to the journal.** Write the prose (steps 1–5 of *Brief
+   structure* below — no environment/plumbing notes) to `briefs/YYYY-MM-DD.md`
+   with front matter:
+   ```
+   ---
+   title: "Sat 11 Jul 2026 · 11:00–16:00"
+   headline: "<the one-line headline>"
+   ---
+   ## Wind
+   ...
+   ```
+   The images are attached automatically — do not embed them in the markdown.
+6. **Publish** the GitHub Pages journal, then commit + push:
+   ```
+   .venv/bin/python .claude/skills/race-brief/publish.py
+   git add briefs/ docs/ && git commit -m "Brief: YYYY-MM-DD" && git push
+   ```
+   `publish.py` rebuilds the whole static site under `docs/` (served from
+   `main` `/docs` at <https://jstockdi.github.io/starling/>). Days with a
+   `.md` use its prose; days with only JSON are auto-summarised.
 
 ## Data sources & stations (see `stations.json`)
 
