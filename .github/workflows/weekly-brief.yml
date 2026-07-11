@@ -1,0 +1,63 @@
+name: Weekly race brief
+
+# Publishes the upcoming weekend's Bristol Harbor race brief to the GitHub Pages
+# journal. Target: 1:00 PM Eastern on Wednesday. Cron is UTC and has no DST, so
+# we fire at both 17:00 UTC (1 PM EDT) and 18:00 UTC (1 PM EST) and let a guard
+# step run the job only when it is actually 13:00 in America/New_York.
+on:
+  schedule:
+    - cron: "0 17 * * 3"   # 1 PM EDT (racing season)
+    - cron: "0 18 * * 3"   # 1 PM EST
+  workflow_dispatch:        # manual run — always proceeds, skips the ET guard
+
+permissions:
+  contents: write           # push the generated brief + rebuilt docs/ back to main
+
+concurrency:
+  group: weekly-brief
+  cancel-in-progress: false
+
+jobs:
+  brief:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Is it 1 PM in New York?
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          hour=$(TZ=America/New_York date +%H)
+          echo "New York hour: $hour"
+          [ "$hour" = "13" ] && echo "go=true" >> "$GITHUB_OUTPUT" || echo "go=false" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.go == 'true'
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        if: steps.gate.outputs.go == 'true'
+        run: pip install -r .claude/skills/race-brief/requirements.txt
+
+      - name: Generate and publish the brief
+        if: steps.gate.outputs.go == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NWS_USER_AGENT: "starling-race-brief-ci"
+        run: python .claude/skills/race-brief/weekly_brief.py
+
+      - name: Commit and push
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add briefs/ docs/
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Weekly brief: $(TZ=America/New_York date +%Y-%m-%d)"
+            git push
+          fi
