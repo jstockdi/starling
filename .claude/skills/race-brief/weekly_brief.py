@@ -3,8 +3,8 @@
 
 Runs the full pipeline unattended (for the weekly GitHub Actions job):
 
-  1. Pick the target race day — the upcoming Saturday (>= today), window 11:00-16:00
-     (override with RACE_DATE / RACE_START / RACE_END).
+  1. Pick the target race day — today (the run day, a Wednesday), window
+     18:00-20:00 (the Wed 6-8 PM race) (override with RACE_DATE / RACE_START / RACE_END).
   2. fetch.py  -> briefs/<date>.json
   3. plot.py   -> the three PNGs
   4. Write the tactical prose with the Claude API (the local-knowledge system
@@ -16,7 +16,7 @@ Auth: ANTHROPIC_API_KEY in the environment (a GitHub Actions secret in CI).
 Never pass an email to fetch.py on the command line — a PII guard blocks it; set
 a non-email NWS_USER_AGENT instead (done here).
 
-Usage: python weekly_brief.py            # next Saturday, 11:00-16:00
+Usage: python weekly_brief.py            # today, 18:00-20:00 (Wed 6-8 PM race)
        RACE_DATE=2026-07-12 python weekly_brief.py
 """
 import datetime as dt
@@ -33,11 +33,6 @@ ROOT = HERE.parent.parent.parent
 BRIEFS = ROOT / "briefs"
 PY = sys.executable  # the interpreter running this script (the venv/CI python)
 MODEL = os.environ.get("RACE_BRIEF_MODEL", "claude-opus-4-8")
-
-
-def next_saturday(today):
-    """The upcoming Saturday, or today if today is Saturday."""
-    return today + dt.timedelta(days=(5 - today.weekday()) % 7)
 
 
 def run(cmd, **env):
@@ -120,9 +115,9 @@ def write_brief(data, md_path):
 
 
 def main():
-    date = os.environ.get("RACE_DATE") or next_saturday(dt.date.today()).isoformat()
-    start = os.environ.get("RACE_START", "11:00")
-    end = os.environ.get("RACE_END", "16:00")
+    date = os.environ.get("RACE_DATE") or dt.date.today().isoformat()
+    start = os.environ.get("RACE_START", "18:00")
+    end = os.environ.get("RACE_END", "20:00")
     ua = os.environ.get("NWS_USER_AGENT", "starling-race-brief-cli")
     BRIEFS.mkdir(parents=True, exist_ok=True)
     json_path = BRIEFS / f"{date}.json"

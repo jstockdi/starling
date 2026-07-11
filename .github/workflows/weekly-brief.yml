@@ -1,7 +1,8 @@
 name: Weekly race brief
 
-# Publishes the upcoming weekend's Bristol Harbor race brief to the GitHub Pages
-# journal. Target: 1:00 PM Eastern on Wednesday. Cron is UTC and has no DST, so
+# Publishes the brief for that evening's Wed 6-8 PM Bristol Harbor race to the
+# GitHub Pages journal. Runs at 1:00 PM Eastern on Wednesday (a few hours before
+# the start). Cron is UTC and has no DST, so
 # we fire at both 17:00 UTC (1 PM EDT) and 18:00 UTC (1 PM EST) and let a guard
 # step run the job only when it is actually 13:00 in America/New_York.
 on:
