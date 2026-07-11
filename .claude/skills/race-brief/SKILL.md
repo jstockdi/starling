@@ -13,8 +13,13 @@ first-order tactical factor.
 
 ## Workflow
 
-1. **Determine the race window.** Ask the user for the date and start/end time if
-   not given (e.g. "Saturday 1100–1600"). Windows vary per regatta — do not assume.
+1. **Determine the race window and course.** Ask for the date and start/end time
+   if not given (e.g. "Saturday 1100–1600"). Windows vary per regatta — do not
+   assume. Also ask the **course** if the user knows it; it is usually one of the
+   four archetypes in *Course & language conventions* below. If the course is
+   unknown, keep the tactical call **course-agnostic** — describe where the
+   pressure, shifts, and current live geographically and let the sailor map it
+   onto whatever gets set.
 2. **Fetch** the data:
    ```
    .venv/bin/python .claude/skills/race-brief/fetch.py --date YYYY-MM-DD --start HH:MM --end HH:MM --out briefs/YYYY-MM-DD.json
@@ -50,6 +55,36 @@ first-order tactical factor.
    `main` `/docs` at <https://jstockdi.github.io/starling/>). Days with a
    `.md` use its prose; days with only JSON are auto-summarised.
 
+## Course & language conventions
+
+**Speak in compass, never boat-relative.** The course orientation changes race to
+race, so "left/right side" is meaningless in a brief. Anchor every tactical call
+to **compass bearings and named landmarks**:
+
+- **Poppasquash Neck** is the **west** shore of the harbor; the **Bristol
+  waterfront** is the **east** shore. The harbor opens **south** to **Hog Island**;
+  the **East Passage** runs **SSW** seaward beyond it.
+- Wind shifts: use **veer** (clockwise) / **back** (counter-clockwise), and always
+  gloss the endpoint — "veers toward the E", not "shifts right".
+- Current: name the **set bearing** — flood ~**011° (NNE, up-bay/into the harbor)**,
+  ebb ~**199° (SSW, down-bay/seaward)**.
+- Pressure: name the **fix or shore** it sits on — "more breeze to the S/seaward
+  (Hog Island, East Passage)", "light under the western Poppasquash shore".
+
+**The course is not known ahead of time.** Brief the geography, then note how it
+maps onto the four common courses (state which lens you are using, or stay
+course-agnostic):
+
+- **N–S windward/leeward** — beats run roughly N and S; the **E–W pressure/shear
+  gradient** across the fixes is the cross-course lever.
+- **J-hook out of Bristol Harbor** — starts in the near-slack inner harbor, hooks
+  out around a harbor-mouth mark into the stronger mouth/Passage current; the turn
+  flips the favored edge, so call it by leg.
+- **Around Hog Island** — a lap crosses all four current quadrants; the set
+  reverses leg-by-leg, so give each leg its own compass call.
+- **Out-and-back (light air)** — a reach/run S toward the East Passage and back;
+  the **pressure gradient dominates** (get to the seaward breeze), current secondary.
+
 ## Data sources & stations (see `stations.json`)
 
 | Layer | Source | Station / fix |
@@ -67,23 +102,26 @@ first-order tactical factor.
 Use these to interpret the numbers — this is what makes the brief read like a local:
 
 - **SW sea breeze** (dominant summer racing wind): fills early–mid afternoon,
-  entering over/around Hog Island from the East Passage. Expect **more pressure on
-  the Hog Island side** than the Bristol town shore, a **right-hand bend and light
-  patch under Poppasquash Point's lee**. Watch the fix gradient in the wind chart —
-  if the outer fixes (Hog south / East Passage) are 3–5 kt stronger, send it out
-  when the course allows.
-- **Northerlies:** gradient-driven off the Bristol/Poppasquash land — shifty and
-  puffy. Reward staying in phase with the shifts over committing to a side.
-- **Poppasquash Point rounding:** casts a lee/shadow and bends the breeze on W/N
-  winds — expect a soft patch and a shift right at the point.
-- **Current — the tactical driver on the outer legs.** Flood sets **NNE up-bay
-  (~011°)**, ebb sets **SSW down-bay (~199°)**. Strongest flow is through the
-  **entrance gut at Hog Island Shoal** and off the island tips; near-slack inside
-  the harbor itself. In the **East Passage** the channel-axis current is materially
-  stronger (`ACT2156`). On an **ebb**, favour the shore to duck the SW channel flow
-  on a beat; on a **flood** it pays to be in the channel going up-bay. Cross-check
-  current slack times against the race window — a mid-race turn changes the
-  favoured side.
+  entering from the **S/SSW** up the East Passage over/around Hog Island. Expect
+  **more pressure to the S/seaward (Hog Island, East Passage)** than up inside the
+  harbor, the breeze **veering (toward the W/SW) as it fills**, and a **light patch
+  under the western Poppasquash shore**. Watch the fix gradient in the wind chart —
+  if the outer/seaward fixes (Hog south / East Passage) are 3–5 kt stronger, work
+  toward them when the course allows.
+- **Northerlies:** gradient-driven off the Bristol/Poppasquash land to the **N** —
+  shifty and puffy. Reward staying in phase with the veers/backs over committing to
+  one side of the course.
+- **Poppasquash Neck (west shore):** casts a lee to its **E/SE** on W/N winds —
+  expect a soft patch and the breeze **veering (toward the E/S)** as you clear its
+  shadow.
+- **Current — the tactical driver on the seaward legs.** Flood sets **NNE up-bay
+  (~011°, into the harbor)**, ebb sets **SSW down-bay (~199°, seaward)**. Strongest
+  flow is through the **entrance gut at Hog Island Shoal** and off the island tips;
+  near-slack inside the harbor itself. In the **East Passage** the channel-axis
+  current is materially stronger (`ACT2156`). On an **ebb**, stay out of the
+  mid-channel SSW set — work the shallower shore edges; on a **flood**, ride the
+  channel when heading up-bay (N). Cross-check current slack times against the race
+  window — a mid-race turn reverses the favored lane.
 - **Tide height** matters for shallow marks and committee-boat depth near the
   harbor edges; flag any low water inside the race window.
 
@@ -92,10 +130,13 @@ Use these to interpret the numbers — this is what makes the brief read like a 
 1. **One-line headline** — the story: wind direction/strength trend + current state.
 2. **Wind** — race-window average and gust, the fix gradient (in vs out), expected
    shifts/sea-breeze timing. Cite live Conimicut obs vs. forecast.
-3. **Current** — state and slack times at the harbor mouth and in the Passage; which
-   side/lane it favours given the wind.
+3. **Current** — state and slack times at the harbor mouth and in the Passage; the
+   set bearing and which **compass lane/shore** it favours given the wind.
 4. **Tide** — hi/lo times and any shallow-water caution.
-5. **Tactical call** — where to start, favoured side, in-harbor vs. send-it-out.
+5. **Tactical call** — expressed in **compass + landmarks** (never left/right): the
+   favoured **compass side / shore**, pressure vs. current trade-off, in-harbor vs.
+   seaward. Give the call **per course archetype** if the course is known, else
+   course-agnostic.
 6. Reference the three PNGs.
 
 ## Fallbacks
