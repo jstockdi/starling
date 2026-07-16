@@ -7,7 +7,6 @@ name: Weekly race brief
 on:
   schedule:
     - cron: "30 16 * * 3"   # 12:30 PM EDT (racing season)
-    - cron: "20 1 * * 4"    # TEMP test run — remove after it fires (2026-07-16 01:20 UTC)
   workflow_dispatch:        # manual run
 
 permissions:
