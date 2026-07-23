@@ -273,12 +273,15 @@ def build_entry(json_path):
         fm, body_src = parse_front_matter(md_path.read_text())
         title = fm.get("title") or nice_date(date)
         headline = fm.get("headline", "")
+        kind = fm.get("kind", "race")
         body_html = md.markdown(body_src, extensions=["tables", "fenced_code", "sane_lists"])
         extra_tbl = ""
     else:
         title = nice_date(date)
+        kind = "race"
         headline, body_md, extra_tbl = auto_summary(data)
         body_html = md.markdown(body_md, extensions=["tables", "fenced_code", "sane_lists"])
+    wlabel = "Daysail" if kind != "race" else "Race window"
 
     imgs = entry_images(date)
     figs = "".join(
@@ -292,7 +295,7 @@ def build_entry(json_path):
         f'<a class="back" href="index.html">← All briefs</a>'
         f'<article><p class="kicker">{esc(harbor)} · Rhode Island</p>'
         f"<h1>{esc(title)}</h1>"
-        f'<p class="meta">Race window {esc(win["start"])}–{esc(win["end"])}</p>'
+        f'<p class="meta">{wlabel} {esc(win["start"])}–{esc(win["end"])}</p>'
         + (f'<p class="headline">{esc(headline)}</p>' if headline else "")
         + body_html + extra_tbl
         + f'<div class="figs">{figs}</div></article>'
@@ -300,7 +303,7 @@ def build_entry(json_path):
     (DOCS / f"{date}.html").write_text(PAGE.format(title=esc(title), fonts=FONTS, css=CSS, body=body))
     return {"date": date, "title": title, "headline": headline,
             "window": f"{data['window']['start']}–{data['window']['end']}",
-            "thumbs": imgs}
+            "wlabel": wlabel, "thumbs": imgs}
 
 
 def build_index(entries):
@@ -311,7 +314,7 @@ def build_index(entries):
         cards.append(
             f'<div class="entry">'
             f'<h2><a href="{e["date"]}.html">{esc(e["title"])}</a></h2>'
-            f'<p class="meta">Race window {esc(e["window"])}</p>'
+            f'<p class="meta">{e.get("wlabel", "Race window")} {esc(e["window"])}</p>'
             + (f'<p class="headline">{esc(e["headline"])}</p>' if e["headline"] else "")
             + (f'<div class="thumbs">{thumbs}</div>' if thumbs else "")
             + "</div>"

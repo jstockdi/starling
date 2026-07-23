@@ -66,6 +66,28 @@ first-order tactical factor.
    Wednesday. On 2026-07-22 it scored `MISS` (actual ~13 kt vs forecast ~6.7 kt,
    2.0×) — the accountability loop that catches a bust like that one.
 
+## Brief kinds: race vs. weekend daysail
+
+Two products share this pipeline (`weekly_brief.py`, selected by `RACE_KIND`):
+
+- **`race`** (default) — the tactical Wed-evening race brief documented above.
+  Window 18:00–20:00. Sections: Wind / Current / Tide / Tactical call.
+- **`weekend`** — a friendly recreational **daysail** forecast, not a race brief.
+  Window 10:00–18:00, run 7 AM EDT Sat & Sun. Warm, plain-English tone; **no race
+  tactics** (no course archetypes, start lines, or favoured side). Sections:
+  *The day* (is it a good day + character: mellow / spirited / marginal) / *Wind*
+  (fill timing, best window, soft spots) / *Tide & current* (hi-lo, shallow
+  cautions, chop heads-up) / *Good to know* (comfort, weather, when to head out).
+  Reuses the same local knowledge below for **where** the wind and current live.
+
+  Manual run:
+  ```
+  RACE_KIND=weekend RACE_DATE=2026-07-25 \
+    .venv/bin/python .claude/skills/race-brief/weekly_brief.py
+  ```
+  The `weekend` brief writes `kind: weekend` into its front matter, so the journal
+  labels it **Daysail** instead of **Race window**.
+
 ## Course & language conventions
 
 **Speak in compass, never boat-relative.** The course orientation changes race to

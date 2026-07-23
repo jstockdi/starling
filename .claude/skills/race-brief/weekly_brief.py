@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Generate and publish the upcoming weekend's Bristol Harbor race brief.
+"""Generate and publish a Bristol Harbor brief — race (default) or weekend daysail.
 
-Runs the full pipeline unattended (for the weekly GitHub Actions job):
+Runs the full pipeline unattended (for the GitHub Actions jobs). RACE_KIND picks
+the product: `race` (Wed 18:00-20:00 tactical brief) or `weekend` (Sat/Sun
+10:00-18:00 friendly daysail forecast).
 
-  1. Pick the target race day — today (the run day, a Wednesday), window
-     18:00-20:00 (the Wed 6-8 PM race) (override with RACE_DATE / RACE_START / RACE_END).
+  1. Pick the target day — today by default (override with RACE_DATE), and the
+     window default per kind (override with RACE_START / RACE_END).
   2. fetch.py  -> briefs/<date>.json
   3. plot.py   -> the three PNGs
   4. Write the tactical prose with the Claude API (the local-knowledge system
@@ -16,8 +18,9 @@ Auth: ANTHROPIC_API_KEY in the environment (a GitHub Actions secret in CI).
 Never pass an email to fetch.py on the command line — a PII guard blocks it; set
 a non-email NWS_USER_AGENT instead (done here).
 
-Usage: python weekly_brief.py            # today, 18:00-20:00 (Wed 6-8 PM race)
-       RACE_DATE=2026-07-12 python weekly_brief.py
+Usage: python weekly_brief.py                          # race, today 18:00-20:00
+       RACE_KIND=weekend python weekly_brief.py         # daysail, today 10:00-18:00
+       RACE_DATE=2026-07-25 python weekly_brief.py
 """
 import datetime as dt
 import json
@@ -60,7 +63,29 @@ def _obs_digest(entry):
     return digest
 
 
-def model_input(data):
+def _nws_digest(data, start, end):
+    """Air temp / sky / precip over the window — comfort context for the prose."""
+    periods = ((data.get("nws") or {}).get("hourly")) or []
+    win = [p for p in periods if start <= p.get("startTime", "")[11:16] <= end]
+    win = win or periods[:8]
+    if not win:
+        return None
+    temps = [p["temperature"] for p in win if p.get("temperature") is not None]
+    pops = [(p.get("probabilityOfPrecipitation") or {}).get("value") or 0 for p in win]
+    skies = []
+    for p in win:
+        s = p.get("shortForecast")
+        if s and (not skies or skies[-1] != s):
+            skies.append(s)
+    return {
+        "temp_f_min": min(temps) if temps else None,
+        "temp_f_max": max(temps) if temps else None,
+        "precip_pct_max": max(pops) if pops else None,
+        "sky": skies[:4],
+    }
+
+
+def model_input(data, start="00:00", end="23:59"):
     """Compact the fetch JSON down to what the brief needs (the raw file is ~60KB)."""
     return {
         "harbor": data["harbor"],
@@ -82,10 +107,11 @@ def model_input(data):
                       "predictions": c.get("predictions")}
                      for c in data["currents"]],
         "nws_marine": (data.get("nws") or {}).get("marine"),
+        "weather": _nws_digest(data, start, end),
     }
 
 
-PROMPT = """\
+RACE_PROMPT = """\
 Write the sailboat-racing journal entry (Markdown) for this Bristol Harbor race,
 using the local knowledge, the Course & language conventions, and the Brief
 structure in the system prompt. Data for the race window is below as JSON.
@@ -114,33 +140,90 @@ Hard rules:
 JSON:
 """
 
+WEEKEND_PROMPT = """\
+Write a friendly weekend DAYSAIL forecast (Markdown) for recreational sailing out
+of Bristol Harbor — not a race brief. Use the local knowledge in the system prompt
+(sea-breeze behaviour, the Poppasquash lee, where current runs), but drop all race
+tactics: no course archetypes, no start-line or leg calls, no "favoured side".
+Speak to someone deciding whether and when to go out for fun. Data spans the
+daysailing window below as JSON.
 
-def write_brief(data, md_path):
+Hard rules:
+- Output ONLY the Markdown, nothing else. Warm, plain-English, encouraging tone.
+- Start with a YAML front-matter block, then the body:
+  ---
+  title: "<Day DD Mon YYYY · Daysail>"
+  headline: "<one line: is it a good day, what kind, and the best window>"
+  ---
+  ## The day
+  <one short paragraph: is it a good day to sail and what character — mellow
+   family daysail, a spirited breeze, or marginal (too light / too much) — and why>
+  ## Wind
+  <when the breeze fills and dies, direction + strength through the day in plain
+   terms (drifter / nice / powered-up / reef-it), the best window to be out, and
+   the soft spots to expect (e.g. under the Poppasquash shore). Use the live obs
+   and forecast confidence if notable, but keep it casual.>
+  ## Tide & current
+  <high/low times; flag any low-water shallow spots to avoid; a heads-up on where
+   current runs and any wind-against-tide chop so a casual sailor isn't surprised>
+  ## Good to know
+  <comfort + safety: air temp / sky / any rain or thunderstorm risk from the NWS
+   data, sun and heat, and a simple when-to-head-out / when-to-be-back suggestion.
+   Mention life-jacket-worthy conditions if it'll be gusty.>
+- Compass bearings and named shores for WHERE, but keep it friendly (no left/right).
+- Do NOT include environment/plumbing notes. A one-line data-gap note is fine only
+  if a data layer is missing.
+
+JSON:
+"""
+
+
+def _ensure_front_matter(md, data, kind):
+    """Guarantee a front-matter block and stamp kind on non-race briefs."""
+    if not md.startswith("---"):
+        w = data["window"]
+        md = (f'---\ntitle: "{data["date"]} · {w["start"]}–{w["end"]}"\n'
+              f'headline: ""\n---\n\n{md}')
+    if kind != "race" and "\nkind:" not in md.split("\n---", 1)[0]:
+        md = md.replace("---\n", f"---\nkind: {kind}\n", 1)
+    return md
+
+
+PROMPTS = {"race": RACE_PROMPT, "weekend": WEEKEND_PROMPT}
+
+
+def write_brief(data, md_path, kind="race"):
     client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY / profile from env
     system = (HERE / "SKILL.md").read_text()
+    w = data["window"]
     resp = client.messages.create(
         model=MODEL,
         max_tokens=12000,
         thinking={"type": "adaptive"},
         system=system,
         messages=[{"role": "user",
-                   "content": PROMPT + json.dumps(model_input(data), indent=2)}],
+                   "content": PROMPTS[kind]
+                   + json.dumps(model_input(data, w["start"], w["end"]), indent=2)}],
     )
     if resp.stop_reason == "refusal":
         raise SystemExit(f"model refused: {getattr(resp, 'stop_details', None)}")
     md = "".join(b.text for b in resp.content if b.type == "text").strip()
-    if not md.startswith("---"):  # belt-and-suspenders: guarantee front matter
-        w = data["window"]
-        md = (f'---\ntitle: "{data["date"]} · {w["start"]}–{w["end"]}"\n'
-              f'headline: ""\n---\n\n{md}')
+    md = _ensure_front_matter(md, data, kind)
     md_path.write_text(md + "\n")
     print(f"wrote {md_path}", flush=True)
 
 
+# Default daysailing window per kind (override with RACE_START / RACE_END).
+WINDOWS = {"race": ("18:00", "20:00"), "weekend": ("10:00", "18:00")}
+
+
 def main():
+    kind = os.environ.get("RACE_KIND", "race")
+    if kind not in PROMPTS:
+        raise SystemExit(f"unknown kind {kind!r} (expected {list(PROMPTS)})")
     date = os.environ.get("RACE_DATE") or dt.date.today().isoformat()
-    start = os.environ.get("RACE_START", "18:00")
-    end = os.environ.get("RACE_END", "20:00")
+    start = os.environ.get("RACE_START", WINDOWS[kind][0])
+    end = os.environ.get("RACE_END", WINDOWS[kind][1])
     ua = os.environ.get("NWS_USER_AGENT", "starling-race-brief-cli")
     BRIEFS.mkdir(parents=True, exist_ok=True)
     json_path = BRIEFS / f"{date}.json"
@@ -148,9 +231,9 @@ def main():
     run([PY, str(HERE / "fetch.py"), "--date", date, "--start", start,
          "--end", end, "--out", str(json_path)], NWS_USER_AGENT=ua)
     run([PY, str(HERE / "plot.py"), str(json_path)])
-    write_brief(json.loads(json_path.read_text()), BRIEFS / f"{date}.md")
+    write_brief(json.loads(json_path.read_text()), BRIEFS / f"{date}.md", kind)
     run([PY, str(HERE / "publish.py"), date])
-    print(f"\nBrief published for {date} ({start}-{end}).", flush=True)
+    print(f"\n{kind.title()} brief published for {date} ({start}-{end}).", flush=True)
 
 
 if __name__ == "__main__":

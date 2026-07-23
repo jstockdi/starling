@@ -1,0 +1,53 @@
+name: Weekend daysail brief
+
+# A friendly recreational daysail forecast for Bristol Harbor (not a race brief).
+# Fires at 7 AM EDT (11:00 UTC) on Saturday and Sunday, covering the 10 AM-6 PM
+# daysailing window. Cron is UTC with no DST; this is the racing-season (EDT) time.
+on:
+  schedule:
+    - cron: "0 11 * * 6,0"   # 7 AM EDT Sat & Sun (racing season)
+  workflow_dispatch:          # manual run
+    inputs:
+      date:
+        description: "Day to brief (YYYY-MM-DD, EDT). Blank = today."
+        required: false
+
+permissions:
+  contents: write             # push the generated brief + rebuilt docs/ back to main
+
+concurrency:
+  group: weekend-brief
+  cancel-in-progress: false
+
+jobs:
+  brief:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install -r .claude/skills/race-brief/requirements.txt
+
+      - name: Generate and publish the daysail brief
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NWS_USER_AGENT: "starling-race-brief-ci"
+          RACE_KIND: weekend
+          RACE_DATE: ${{ github.event.inputs.date }}
+        run: python .claude/skills/race-brief/weekly_brief.py
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add briefs/ docs/
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Weekend daysail brief: $(TZ=America/New_York date +%Y-%m-%d)"
+            git push
+          fi
