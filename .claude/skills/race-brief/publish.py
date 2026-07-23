@@ -331,7 +331,8 @@ def build_index(entries):
 def main():
     DOCS.mkdir(parents=True, exist_ok=True)
     (DOCS / ".nojekyll").write_text("")
-    jsons = sorted(BRIEFS.glob("*.json"))
+    # One brief per race day: <date>.json. Skip sidecars like <date>_verify.json.
+    jsons = sorted(p for p in BRIEFS.glob("*.json") if "_" not in p.stem)
     if not jsons:
         print("no briefs found in briefs/", file=sys.stderr)
         sys.exit(1)

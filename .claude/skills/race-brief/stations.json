@@ -16,8 +16,8 @@
     { "id": "ACT2156", "name": "Dyer Island, W of (East Passage)",  "role": "channel",  "flood_dir": null, "ebb_dir": null }
   ],
   "wind_obs": [
-    { "id": "8452660", "name": "Newport", "source": "coops", "note": "Real anemometer at the East Passage mouth — closest obs to the seaward course legs." },
-    { "id": "8452944", "name": "Conimicut Light", "source": "coops", "note": "Real anemometer ~3 mi N up the East Passage; the up-bay obs." }
+    { "id": "8452660", "name": "Newport", "source": "coops", "lat": 41.5043, "lon": -71.3261, "note": "Real anemometer at the East Passage mouth — closest obs to the seaward course legs." },
+    { "id": "8452944", "name": "Conimicut Light", "source": "coops", "lat": 41.7167, "lon": -71.3447, "note": "Real anemometer ~3 mi N up the East Passage; the up-bay obs." }
   ],
   "offshore": { "id": "44097", "name": "Block Island (NDBC 44097)", "note": "What's arriving from the south / open-ocean context." }
 }

@@ -1,0 +1,57 @@
+name: Verify race brief
+
+# Scores that evening's Wed 6-8 PM brief against the actual anemometer record and
+# writes the scorecard into the journal page. Fires at 10:30 PM EDT (02:30 UTC
+# Thursday) — a few hours after the 8 PM finish, once CO-OPS has logged the whole
+# window. Cron is UTC with no DST; this is the racing-season (EDT) time.
+on:
+  schedule:
+    - cron: "30 2 * * 4"    # 10:30 PM EDT Wed (racing season)
+  workflow_dispatch:         # manual run
+    inputs:
+      date:
+        description: "Race date to verify (YYYY-MM-DD, EDT). Blank = most recent Wed."
+        required: false
+
+permissions:
+  contents: write            # push the scorecard + rebuilt docs/ back to main
+
+concurrency:
+  group: verify-brief
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install -r .claude/skills/race-brief/requirements.txt
+
+      - name: Score the brief against actuals
+        env:
+          NWS_USER_AGENT: "starling-race-brief-ci"
+        run: |
+          DATE="${{ github.event.inputs.date }}"
+          [ -z "$DATE" ] && DATE="$(TZ=America/New_York date +%F)"
+          if [ ! -f "briefs/$DATE.json" ]; then
+            echo "No brief for $DATE — nothing to verify."; exit 0
+          fi
+          python .claude/skills/race-brief/verify.py --date "$DATE"
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add briefs/ docs/
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Verify brief: $(TZ=America/New_York date +%Y-%m-%d)"
+            git push
+          fi

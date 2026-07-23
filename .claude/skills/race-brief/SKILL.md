@@ -54,6 +54,17 @@ first-order tactical factor.
    `publish.py` rebuilds the whole static site under `docs/` (served from
    `main` `/docs` at <https://jstockdi.github.io/starling/>). Days with a
    `.md` use its prose; days with only JSON are auto-summarised.
+7. **Verify after the race** (a few hours past the finish, once CO-OPS has logged
+   the window):
+   ```
+   .venv/bin/python .claude/skills/race-brief/verify.py --date YYYY-MM-DD
+   ```
+   Re-fetches the real race-window wind, scores each anemometer against its nearest
+   forecast fix (speed ratio + direction error), writes `briefs/<date>_verify.json`,
+   appends a `## Verification` scorecard to `briefs/<date>.md`, and republishes.
+   In CI the **Verify race brief** workflow runs this automatically at 10:30 PM EDT
+   Wednesday. On 2026-07-22 it scored `MISS` (actual ~13 kt vs forecast ~6.7 kt,
+   2.0×) — the accountability loop that catches a bust like that one.
 
 ## Course & language conventions
 

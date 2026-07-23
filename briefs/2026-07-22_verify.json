@@ -1,0 +1,58 @@
+{
+  "date": "2026-07-22",
+  "window": {
+    "start": "18:00",
+    "end": "20:00"
+  },
+  "verified_utc": "2026-07-23T19:56:37.254639+00:00",
+  "gate_prior": null,
+  "stations": [
+    {
+      "station": "Newport",
+      "fix_key": "east_passage",
+      "fix_name": "East Passage / off Hope Island",
+      "forecast": {
+        "avg_speed": 6.7,
+        "dir": 210,
+        "max_gust": 21.0
+      },
+      "actual": {
+        "avg_speed": 13.1,
+        "peak_speed": 16.3,
+        "peak_gust": 20.4,
+        "dir": 210,
+        "n_obs": 21
+      },
+      "score": {
+        "speed_ratio": 1.96,
+        "speed_err_kt": 6.4,
+        "dir_err_deg": 0,
+        "verdict": "under"
+      }
+    },
+    {
+      "station": "Conimicut Light",
+      "fix_key": "poppasquash",
+      "fix_name": "Off Poppasquash Point",
+      "forecast": {
+        "avg_speed": 6.6,
+        "dir": 222,
+        "max_gust": 17.7
+      },
+      "actual": {
+        "avg_speed": 13.2,
+        "peak_speed": 16.1,
+        "peak_gust": 17.9,
+        "dir": 189,
+        "n_obs": 21
+      },
+      "score": {
+        "speed_ratio": 2.0,
+        "speed_err_kt": 6.6,
+        "dir_err_deg": -33,
+        "verdict": "under"
+      }
+    }
+  ],
+  "overall": "miss"
+}
