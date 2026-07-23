@@ -42,6 +42,24 @@ def run(cmd, **env):
     subprocess.run(cmd, check=True, env=e)
 
 
+def _obs_digest(entry):
+    """Compact one anemometer's day into latest + recent trend (drop the 240 rows)."""
+    if entry.get("error"):
+        return {"name": entry.get("name"), "error": entry["error"]}
+    series = [o for o in (entry.get("series") or []) if o.get("speed") is not None]
+    recent = series[-20:]  # last ~2 h of 6-min obs available at generation
+    speeds = [o["speed"] for o in recent]
+    digest = {"name": entry.get("name"), "note": entry.get("note"),
+              "latest": entry.get("latest")}
+    if recent:
+        digest["recent_2h"] = {
+            "avg_kt": round(sum(speeds) / len(speeds), 1),
+            "peak_kt": round(max(speeds), 1),
+            "dir_start": recent[0].get("dir"), "dir_end": recent[-1].get("dir"),
+        }
+    return digest
+
+
 def model_input(data):
     """Compact the fetch JSON down to what the brief needs (the raw file is ~60KB)."""
     return {
@@ -52,7 +70,12 @@ def model_input(data):
                       for e in data["tide"]["hilo"]],
         "wind_fixes": [{"key": f["key"], "name": f["name"], "summary": f.get("summary")}
                        for f in data["fixes"]],
-        "live_wind": data.get("live_wind"),
+        # summary.spread/model_avgs = cross-model agreement; wind_check = obs-vs-model gate.
+        "wind_check": data.get("wind_check"),
+        "live_wind": [_obs_digest(w) for w in (data.get("live_wind") or [])],
+        # Buoy wind if live, else the latest row's wave direction as a southerly cue.
+        "offshore": (data.get("offshore") or {}).get("latest")
+                    or (data.get("offshore") or {}).get("latest_any"),
         "currents": [{"name": c["name"], "id": c["id"],
                       "flood_dir": c.get("flood_dir"), "ebb_dir": c.get("ebb_dir"),
                       "units": c.get("units"),

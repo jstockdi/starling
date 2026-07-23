@@ -92,10 +92,23 @@ course-agnostic):
 | Tide height + hi/lo | NOAA CO-OPS `predictions` | Newport `8452660` (Narragansett Bay reference) |
 | Current (harbor mouth) | NOAA CO-OPS `currents_predictions` | `ACT2171` Hog Island NW — flood 011°, ebb 199° |
 | Current (East Passage) | NOAA CO-OPS `currents_predictions` | `ACT2156` Dyer Island W |
-| Wind forecast (5 fixes) | Open-Meteo, exact lat/lon | inner harbor → Poppasquash → Hog mouth → S of Hog → East Passage |
-| Live wind obs | NOAA CO-OPS `wind` | Conimicut Light `8452944` (nearest anemometer) |
+| Wind forecast (5 fixes) | Open-Meteo, 3 models per fix | inner harbor → Poppasquash → Hog mouth → S of Hog → East Passage |
+| Live wind obs | NOAA CO-OPS `wind` | Newport `8452660` (Passage mouth) + Conimicut Light `8452944` (up-bay) |
 | Marine text forecast | NWS `api.weather.gov` | zone `ANZ236` Narragansett Bay |
-| Offshore context | NDBC | `44097` Block Island |
+| Offshore context | NDBC `44097` | Block Island — the southerly ocean signal |
+
+**Wind model & confidence.** Each fix pulls **HRRR (3 km, primary), ECMWF, and GFS**.
+HRRR drives the numbers (it resolves the sea breeze the old best_match blend smeared
+out); ECMWF + GFS give a home-grown spread. Read two derived signals before writing
+the wind section:
+
+- **`summary.spread` / `summary.model_avgs`** per fix — kt between the strongest and
+  weakest model over the window. Small (≲2 kt) → state the strength confidently; large
+  (≳4 kt) → hedge ("models split 5–13 kt; treat strength as low-confidence").
+- **`wind_check`** — the live anemometer vs the model over the hours both cover. If it
+  says obs are **materially stronger/weaker**, trust the obs regime over the model
+  narrative. (On 2026-07-22 the model called 6–7 kt easing while Conimicut already read
+  18 kt; the obs were right — a solid 12–16 kt held the whole window.)
 
 ## Bristol Harbor / Hog Island local knowledge (for the prose brief)
 
@@ -129,7 +142,9 @@ Use these to interpret the numbers — this is what makes the brief read like a 
 
 1. **One-line headline** — the story: wind direction/strength trend + current state.
 2. **Wind** — race-window average and gust, the fix gradient (in vs out), expected
-   shifts/sea-breeze timing. Cite live Conimicut obs vs. forecast.
+   shifts/sea-breeze timing. Cite the live anemometers (Newport, Conimicut) vs.
+   forecast, and let `wind_check` + model `spread` set your confidence (see *Wind
+   model & confidence* above).
 3. **Current** — state and slack times at the harbor mouth and in the Passage; the
    set bearing and which **compass lane/shore** it favours given the wind.
 4. **Tide** — hi/lo times and any shallow-water caution.
